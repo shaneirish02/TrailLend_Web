@@ -1,0 +1,168 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>SCITC List of Items</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #F5F5F5;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 70px;
+      height: 100vh;
+      background-color: #1F1B4F;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+    }
+
+    .sidebar img.logo {
+      width: 70px;
+      height: 70px;
+      margin-bottom: 40px;
+    }
+
+    .sidebar i {
+      color: white;
+      font-size: 25px;
+      margin: 20px 0;
+      cursor: pointer;
+    }
+
+    .header {
+      background-color: #FAB417;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding-left: 80px;
+      font-weight: bold;
+      color: #000000;
+      font-size: 20px;
+    }
+
+    .main-content {
+      margin-left: 70px;
+      padding: 20px;
+    }
+
+    .main-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .main-header h2 {
+      font-size: 22px;
+      font-weight: bold;
+      margin: 0;
+    }
+
+    .create-btn {
+      background-color: #E8E6F1;
+      color: black;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 20px;
+    }
+
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+      text-align: center;
+      padding: 15px;
+    }
+
+    .card img {
+      width: 100%;
+      height: 120px;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .card p {
+      margin: 10px 0;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .view-btn {
+      background-color: #1F1B4F;
+      color: white;
+      padding: 8px 14px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      font-size: 13px;
+    }
+
+    .no-items {
+      background-color: white;
+      padding: 20px;
+      text-align: center;
+      border-radius: 10px;
+      font-size: 16px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <img src="{% static 'images/logo.png' %}" class="logo">
+    <a href="/dashboard/"><i class="fa fa-angle-double-down" title="Dashboard"></i></a>
+    <a href="/items/"><i class="fa fa-tags" title="Item List"></i></a>
+    <a href="/reservation_verification/"><i class="fa fa-clipboard" title="Reserve Verification"></i></a>
+    <a href="/history-logs/"><i class="fa fa-history" title="Reserve History"></i></a>
+    <a href="/user-feedback/"><i class="fas fa-comment-alt" title="Damage Report"></i></a>
+    <a href="/change_password/"><i class="fas fa-key" title="Change Password"></i></a>
+    <a href="/logout/"><i class="fa fa-sign-out" title="Log Out"></i></a>
+  </div>
+
+  <div class="header">
+    SCITC LIST OF ITEMS
+  </div>
+
+  <div class="main-content">
+    <div class="main-header">
+      <h2>Items</h2>
+      <a href="/items/create/" class="create-btn">+ Create New Item</a>
+    </div>
+
+    <div class="grid">
+      {% for item in items %}
+        <div class="card">
+          {% if item.image %}
+            <img src="{{ item.image.url }}" alt="{{ item.name }}">
+          {% else %}
+            <img src="{% static 'images/default-placeholder.png' %}" alt="No Image">
+          {% endif %}
+          <p>{{ item.name }}</p>
+          <a href="{% url 'view_item' item.pk %}" class="view-btn">View</a>
+        </div>
+      {% empty %}
+        <div class="no-items">No items available yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</body>
+</html>

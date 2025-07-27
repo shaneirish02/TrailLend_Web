@@ -1,0 +1,215 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reservation Verification</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #F5F5F5;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 70px;
+      height: 100vh;
+      background-color: #1F1B4F;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+    }
+
+    .sidebar img.logo {
+      width: 70px;
+      height: 70px;
+      margin-bottom: 40px;
+    }
+
+    .sidebar i {
+      color: white;
+      font-size: 25px;
+      margin: 20px 0;
+      cursor: pointer;
+    }
+
+    .header {
+      background-color: #FAB417;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding-left: 80px;
+      font-weight: bold;
+      color: #000000;
+      font-size: 20px;
+    }
+
+    .main-content {
+      margin-left: 70px;
+      padding: 40px;
+    }
+
+    .search-bar {
+      display: flex;                 /* Not 'center' — use 'flex' for layout */
+      justify-content: center;      /* Horizontally center the content */
+      align-items: center;
+      margin-bottom: 30px;
+    }
+    .search-input {
+      display: flex;
+      align-items: center;
+      background-color: #F0ECF7;
+      border-radius: 5px;
+      padding: 12px 16px;     /* Increased padding */
+      width: 100%;
+      max-width: 600px;       /* Make the whole bar a bit wider */
+    }
+    .search-input input {
+      border: none;
+      background: none;
+      outline: none;
+      width: 100%;
+      font-size: 16px;
+    }
+
+    .search-input i {
+      color: gray;
+      margin-left: 8px;
+    }
+
+    .no-data {
+      margin-top: 100px;
+      text-align: center;
+      color: #777;
+      font-size: 18px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    th, td {
+      padding: 12px 16px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+
+    th {
+      background-color: #f3f3f3;
+      font-weight: bold;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <img src="{% static 'images/logo.png' %}" alt="Logo" class="logo">
+  <a href="{% url 'dashboard' %}"><i class="fa fa-angle-double-down" title="Dashboard"></i></a>
+  <a href="{% url 'item_list' %}"><i class="fa fa-tags" title="Item List"></i></a>
+  <a href="{% url 'reservation_verification' %}"><i class="fa fa-clipboard" title="Reserve Verification"></i></a>
+  <a href="{% url 'history_logs' %}"><i class="fa fa-history" title="Reserve History List"></i></a>
+  <a href="{% url 'damage_report' %}"><i class="fas fa-comment-alt" title="Damage Report"></i></a>
+  <a href="{% url 'change_password' %}"><i class="fas fa-key" title="Change Password"></i></a>
+  <a href="{% url 'logout' %}"><i class="fa fa-sign-out" title="Log Out"></i></a>
+</div>
+
+<!-- Header -->
+<div class="header">RESERVATION VERIFICATION</div>
+
+<!-- Main -->
+<div class="main-content">
+  <form method="GET" class="search-bar">
+    <div class="search-input">
+      <input type="text" name="q" placeholder="Search Student/Instructor ID" value="{{ request.GET.q }}" autocomplete="off">
+      <i class="fa fa-search" onclick="this.closest('form').submit()"></i>
+    </div>
+  </form>
+
+  {% if reservations %}
+    <!-- Render user info & signature once -->
+    <div class="user-container" style="background-color:#ddd; padding:15px; margin-bottom:20px; display:flex; justify-content:space-between; border-radius:2px;">
+      <div class="user-info">
+        <h2>ID NO. {{ reservations.0.borrower.username|default:"N/A" }}</h2>
+        <p><strong>{{ reservations.0.borrower.profile.full_name|default:"N/A" }}</strong></p>
+        <p>{{ reservations.0.borrower.email|default:"N/A" }}</p>
+        <p>{{ reservations.0.borrower.profile.course|default:"N/A" }}</p>
+      </div>
+      <div class="signature">
+        {% if reservations.0.signature %}
+          <img src="{{ reservations.0.signature|safe }}" alt="Signature" style="width: 300px; max-height: 150px; padding:10px; margin-right: 20px;" />
+        {% else %}
+          <span style="color: gray;">No Signature</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Loop through reservation details -->
+    {% for r in reservations %}
+      <div class="reserve-details" style="background-color:#eee; padding:20px; margin-bottom:40px; border-radius:8px;">
+        <div style="display:flex; gap:20px; align-items:center;">
+          {% if r.item.image %}
+            <img src="{{ r.item.image.url }}" alt="{{ r.item.name }}" style="height:100px; border-radius:5px;" />
+          {% else %}
+            <div style="height:100px; width:100px; background:#ccc; border-radius:5px; display:flex; align-items:center; justify-content:center;">No image</div>
+          {% endif %}
+          <div class="item-info">
+            <p><strong>Transaction ID:</strong> {{ r.transaction_id }}</p>
+            <p><strong>Item No:</strong> {{ r.item.item_no }}</p>
+            <p><strong>Item Name:</strong> {{ r.item.name }}</p>
+            <p><strong>Fee:</strong> ₱{{ r.fee|floatformat:2 }}</p>
+          </div>
+        </div>
+
+        <table>
+          <thead style="background:#ccc;">
+            <tr>
+              <th>TIMESTAMP</th>
+              <th>DATE & TIME BORROWED</th>
+              <th>DUE DATE & TIME</th>
+              <th>ACTION</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>{{ r.start_datetime|date:"M d, Y – h:i a" }}</td>
+              <td>{{ r.start_datetime|date:"Y-m-d h:i A" }}</td>
+              <td>{{ r.end_datetime|date:"Y-m-d h:i A" }}</td>
+              <td><button style="background:green; color:white; border:none; border-radius:5px; padding:5px 10px;">BORROWED</button></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="margin-top:15px; display:flex; gap:10px;">
+          <button style="background:red; color:white; border:none; border-radius:5px; padding:10px 20px;">RETURNED</button>
+          <button style="background:#007BFF; color:white; border:none; border-radius:5px; padding:10px 20px;">FEEDBACK</button>
+        </div>
+      </div>
+    {% endfor %}
+  {% else %}
+    <div class="no-data">
+      No data to display. Enter a valid Student or Instructor ID.
+    </div>
+  {% endif %}
+
+</body>
+</html>

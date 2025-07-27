@@ -1,0 +1,258 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit Item</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #F5F5F5;
+    }
+    .sidebar {
+      position: fixed; top: 0; left: 0; width: 70px; height: 100vh;
+      background-color: #1F1B4F; display: flex; flex-direction: column;
+      align-items: center; padding-top: 20px;
+    }
+    .sidebar img.logo { width: 70px; height: 70px; margin-bottom: 40px; }
+    .sidebar i { color: white; font-size: 25px; margin: 20px 0; cursor: pointer; }
+    .header {
+      background-color: #FAB417; height: 60px;
+      display: flex; align-items: center;
+      padding-left: 80px; font-weight: bold; color: #000000; font-size: 20px;
+    }
+    .main-content { margin-left: 70px; padding: 20px; }
+    .form-box {
+      background: #fff; border-radius: 10px;
+      padding: 30px; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+    }
+    .form-section { display: flex; gap: 30px; flex-wrap: wrap; }
+    .left, .right { flex: 1; min-width: 280px; }
+    .form-label { font-weight: bold; margin-bottom: 5px; display: block; }
+    input, textarea, select {
+      width: 100%; padding: 10px; margin-bottom: 15px;
+      border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box;
+    }
+    .preview-box {
+      width: 100%; height: 180px; border: 1px solid #ccc;
+      display: flex; justify-content: center; align-items: center;
+      background-color: #eee; margin-bottom: 15px; border-radius: 5px;
+    }
+    .preview-box img { max-width: 90%; max-height: 90%; }
+    .upload-row {
+      display: flex; gap: 10px; align-items: center;
+    }
+    .upload-btn {
+      background-color: #E8E6F1; padding: 10px 15px;
+      border-radius: 5px; cursor: pointer; font-weight: bold; white-space: nowrap; margin-bottom: 16px;
+    }
+    .btn-row {
+      display: flex; gap: 10px; margin-top: 10px;
+    }
+    .btn-save {
+      background-color: #24EB4F; color: white; padding: 10px;
+      border: none; border-radius: 5px; font-weight: bold; cursor: pointer;
+    }
+    .btn-delete {
+      background-color: #EB2424; color: white; padding: 10px;
+      border: none; border-radius: 5px; font-weight: bold; cursor: pointer;
+    }
+    .btn-cancel {
+      background-color: #888; color: white; padding: 10px;
+      border: none; border-radius: 5px; font-weight: bold; cursor: pointer;
+    }
+    .item-no-display {
+      margin-bottom: 20px; padding: 12px; background-color: #f9f9f9;
+      font-weight: bold; border-left: 5px solid #FAB417;
+    }
+    /* ✅ Fixed modal styling: hidden by default */
+    #deleteModal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ✅ Sidebar -->
+<div class="sidebar">
+  <img src="{% static 'images/logo.png' %}" class="logo">
+  <a href="/dashboard/"><i class="fa fa-angle-double-down" title="Dashboard"></i></a>
+  <a href="/items/"><i class="fa fa-tags" title="Item List"></i></a>
+  <a href="/reservation_verification/"><i class="fa fa-clipboard" title="Reserve Verification"></i></a>
+  <a href="/history-logs/"><i class="fa fa-history" title="Reserve History"></i></a>
+  <a href="/user-feedback/"><i class="fas fa-comment-alt" title="Damage Report"></i></a>
+  <a href="/change_password/"><i class="fas fa-key" title="Change Password"></i></a>
+  <a href="/logout/"><i class="fa fa-sign-out" title="Log Out"></i></a>
+</div>
+
+<!-- ✅ Header -->
+<div class="header">SCITC LIST OF ITEM > VIEW ITEM</div>
+
+<!-- ✅ Main Form Content -->
+<div class="main-content">
+  <div class="item-no-display">Item No: {{ item.item_no }}</div>
+
+  <div class="form-box">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+      <input type="hidden" name="blocked_dates_json" id="blockedDatesInput">
+
+      {% if form.errors %}
+        <div style="color: red; margin-bottom: 10px;">
+          <strong>Form errors:</strong>
+          <ul>
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li>{{ field.label }}: {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="form-section">
+        <!-- LEFT SIDE -->
+        <div class="left">
+          <div class="preview-box" id="preview-image">
+            {% if item.image %}
+              <img src="{{ item.image.url }}">
+            {% else %}
+              <i class="fa fa-image fa-2x" style="color: #aaa;"></i>
+            {% endif %}
+          </div>
+
+          <label class="form-label">Payment</label>
+          <select name="payment_type" onchange="togglePriceInput(this)" disabled>
+            <option value="free" {% if item.payment_type == 'free' %}selected{% endif %}>Free</option>
+            <option value="custom" {% if item.payment_type == 'custom' %}selected{% endif %}>Custom</option>
+          </select>
+          <input type="number" name="custom_price" id="price" placeholder="Enter amount"
+                 value="{{ item.custom_price }}" {% if item.payment_type != 'custom' %}style="display:none;"{% endif %} min="0" disabled>
+
+          <label class="form-label">Availability</label>
+          <select name="availability" disabled>
+            <option value="true" {% if item.availability %}selected{% endif %}>Available</option>
+            <option value="false" {% if not item.availability %}selected{% endif %}>Unavailable</option>
+          </select>
+
+          <!-- View mode -->
+          <div class="btn-row" id="view-mode-buttons">
+            <button type="button" class="btn-save" onclick="enableEdit()">Edit</button>
+            <button type="button" class="btn-delete" onclick="confirmDelete()">Delete</button>
+          </div>
+
+          <!-- Edit mode -->
+          <div class="btn-row" id="edit-mode-buttons" style="display: none;">
+            <button type="submit" class="btn-save">Save</button>
+            <button type="button" class="btn-delete" onclick="confirmDelete()">Delete</button>
+            <button type="button" class="btn-cancel" onclick="cancelEdit()">Cancel</button>
+          </div>
+        </div>
+
+        <!-- RIGHT SIDE -->
+        <div class="right">
+          <label class="form-label">Item Image</label>
+          <div class="upload-row">
+            <input type="text" id="image-name-display" value="{{ item.image.name|default:'' }}" disabled>
+            <label class="upload-btn">
+              CHOOSE IMAGE
+              <input type="file" name="image" accept="image/*" style="display: none;" onchange="preview(event)" disabled>
+            </label>
+          </div>
+
+          <label class="form-label">Item Name</label>
+          <input type="text" name="name" value="{{ form.name.value|default:item.name }}" required disabled>
+
+          <label class="form-label">Department Owner</label>
+          <input type="text" value="Society of College in Information Technology and Computing" disabled>
+
+          <label class="form-label">Description</label>
+          <textarea name="description" rows="4" required disabled>{{ form.description.value|default:item.description }}</textarea>
+
+          <!-- Calendar -->
+          <div class="calendar-container">
+          {% include "calendar_modal.html" with item_id=item.id %}
+
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ✅ Delete Confirmation Modal -->
+<div id="deleteModal">
+  <div style="background:white; padding:20px; border-radius:8px; width:300px; text-align:center;">
+    <p style="font-size: 18px; margin-bottom: 20px;">Are you sure you want to delete this item?</p>
+    <form method="POST" action="{% url 'delete_item' item.pk %}">
+      {% csrf_token %}
+      <button type="submit" style="background:#EB2424; color:white; padding:10px 20px; border:none; border-radius:5px;">Yes, Delete</button>
+      <button type="button" onclick="closeDeleteModal()" style="margin-left: 10px; background:#ccc; padding:10px 20px; border:none; border-radius:5px;">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<!-- ✅ JS Scripts -->
+<script>
+  window.modalEnabled = false;
+
+  function preview(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+    if (file) {
+      document.getElementById("image-name-display").value = file.name;
+      reader.onload = function () {
+        document.getElementById('preview-image').innerHTML = `<img src="${reader.result}">`;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function togglePriceInput(sel) {
+    document.getElementById("price").style.display = sel.value === 'custom' ? 'block' : 'none';
+  }
+
+  function enableEdit() {
+    window.modalEnabled = true;
+    document.querySelectorAll('input, select, textarea').forEach(el => el.removeAttribute('disabled'));
+    document.getElementById('view-mode-buttons').style.display = 'none';
+    document.getElementById('edit-mode-buttons').style.display = 'flex';
+  }
+
+  function cancelEdit() {
+    window.modalEnabled = false;
+    document.querySelectorAll('input, select, textarea').forEach(el => el.setAttribute('disabled', 'disabled'));
+    document.getElementById('view-mode-buttons').style.display = 'flex';
+    document.getElementById('edit-mode-buttons').style.display = 'none';
+    window.location.reload();
+  }
+
+  const initialBlocked = JSON.parse('{{ blocked_dates_json|safe }}');
+  initialBlocked.forEach(date => blockedDates[date] = true);
+
+  document.addEventListener("DOMContentLoaded", () => {
+    renderCalendar();
+  });
+
+  function confirmDelete() {
+    document.getElementById("deleteModal").style.display = "flex";
+  }
+
+  function closeDeleteModal() {
+    document.getElementById("deleteModal").style.display = "none";
+  }
+</script>
+
+</body>
+</html>

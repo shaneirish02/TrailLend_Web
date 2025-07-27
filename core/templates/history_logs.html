@@ -1,0 +1,198 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>History Logs</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #F5F5F5;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 70px;
+      height: 100vh;
+      background-color: #1F1B4F;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+    }
+
+    .sidebar img.logo {
+      width: 70px;
+      height: 70px;
+      margin-bottom: 40px;
+    }
+
+    .sidebar i {
+      color: white;
+      font-size: 25px;
+      margin: 20px 0;
+      cursor: pointer;
+    }
+
+    .header {
+      background-color: #FAB417;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding-left: 80px;
+      font-weight: bold;
+      color: #000000;
+      font-size: 20px;
+    }
+
+    .main-content {
+      margin-left: 70px;
+      padding: 30px;
+    }
+
+    .search-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .search-input {
+      display: flex;
+      align-items: center;
+      background-color: #EAE4F2;
+      border-radius: 5px;
+      padding: 8px 12px;
+      width: 300px;
+    }
+
+    .search-input input {
+      border: none;
+      background: none;
+      outline: none;
+      width: 100%;
+      font-size: 14px;
+    }
+
+    .search-input i {
+      color: gray;
+      margin-left: 8px;
+    }
+
+    .transaction-count {
+      margin-bottom: 15px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    table {
+      width: 1300px;
+      border-collapse: collapse;
+    }
+
+    th, td {
+      padding: 10px 15px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      font-size: 14px;
+    }
+
+    th {
+      background-color: #f4f4f4;
+      font-weight: bold;
+    }
+
+    tr:hover {
+      background-color: #f9f9f9;
+    }
+
+    .no-data {
+      padding: 20px;
+      text-align: center;
+      color: #888;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ✅ Sidebar -->
+<div class="sidebar">
+  <img src="{% static 'images/logo.png' %}" alt="Logo" class="logo">
+  <a href="{% url 'dashboard' %}"><i class="fa fa-angle-double-down" title="Dashboard"></i></a>
+  <a href="{% url 'item_list' %}"><i class="fa fa-tags" title="Item List"></i></a>
+  <a href="{% url 'reservation_verification' %}"><i class="fa fa-clipboard" title="Reserve Verification"></i></a>
+  <a href="{% url 'history_logs' %}"><i class="fa fa-history" title="Reserve History List"></i></a>
+  <a href="{% url 'damage_report' %}"><i class="fas fa-comment-alt" title="Damage Report"></i></a>
+  <a href="{% url 'change_password' %}"><i class="fas fa-key" title="Change Password"></i></a>
+  <a href="{% url 'logout' %}"><i class="fa fa-sign-out" title="Log Out"></i></a>
+</div>
+
+<!-- ✅ Header -->
+<div class="header">History Logs</div>
+
+<!-- ✅ Main Content -->
+<div class="main-content">
+  <div class="transaction-count">Total Transactions: {{ reservations|length }}</div>
+
+  <div class="search-bar">
+    <div class="search-input">
+      <input type="text" placeholder="Search text" name="q" disabled>
+      <i class="fa fa-search"></i>
+    </div>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Transaction ID</th>
+          <th>User ID</th>
+          <th>Name</th>
+          <th>Item ID</th>
+          <th>Item Name</th>
+          <th>Date & Time Reserved</th>
+          <th>Due Date & Time</th>
+          <th>Date & Time Returned</th>
+          <th>Fee</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if reservations %}
+          {% for r in reservations %}
+            <tr>
+              <td>{{ r.transaction_id }}</td>
+              <td>{{ r.borrower.username }}</td> <!-- from auth_user -->
+              <td>{{ r.borrower.profile.full_name }}</td> <!-- from core_profile -->
+              <td>{{ r.item.item_no }}</td>
+              <td>{{ r.item.name }}</td>
+              <td>{{ r.start_datetime }}</td>
+              <td>{{ r.end_datetime }}</td>
+              <td>{{ r.returned_datetime|default:"—" }}</td>
+              <td>{{ r.fee }}</td>
+              <td>{{ r.status }}</td>
+            </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="10">No reservation history found.</td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>

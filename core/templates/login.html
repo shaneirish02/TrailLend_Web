@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TrailLend Login</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: #FAB417;
+      font-family: Arial, sans-serif;
+    }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Shadow gradient block */
+    .shadow-layer {
+      position: absolute;
+      width: 350px;
+      height: 295px;
+      padding: 40px 30px;
+      background: linear-gradient(180deg, #FFFFFF 0%, #1F1B4F 100%);
+      transform: translate(10px, 10px);
+      z-index: 0;
+    }
+
+    .box {
+      position: relative;
+      background-color: #FFFFFF;
+      padding: 40px 30px;
+      width: 350px;
+      text-align: center;
+      z-index: 1;
+    }
+
+    .message {
+      padding: 12px;
+      color: white;
+      border-radius: 6px;
+      font-size: 14px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .message.success {
+      background-color: #28a745;
+    }
+
+    .message.error {
+      background-color: #dc3545;
+    }
+
+    .message i {
+      margin-right: 8px;
+    }
+
+    .logo {
+      width: 70px;
+      height: 70px;
+      margin-bottom: -10px;
+    }
+
+    h2 {
+      margin: 0 0 25px;
+      font-size: 20px;
+      font-weight: bold;
+      color: #000;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      margin-bottom: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    .forgot {
+      color: #007BFF;
+      font-size: 13px;
+      text-decoration: none;
+      display: block;
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .forgot:hover {
+      text-decoration: underline;
+    }
+
+    button {
+      background-color: #FAB417;
+      border: none;
+      color: rgb(255, 255, 255);
+      padding: 10px 40px;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    button:hover {
+      background-color: #e0a900;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- BACK LAYER: Gradient Shadow -->
+    <div class="shadow-layer"></div>
+
+    <!-- FRONT LAYER: White Card -->
+    <div class="box">
+      {% if message %}
+        <div class="message success">
+          <i>✔</i> {{ message }}
+        </div>
+      {% elif error %}
+        <div class="message error">
+          <i>✖</i> {{ error }}
+        </div>
+      {% endif %}
+
+      <img src="../static/images/logo.png" alt="TrailLend Logo" class="logo">
+      <h2>Admin Portal</h2>
+
+      <form method="POST">
+        {% csrf_token %}
+        <input type="text" name="username" placeholder="Username" required>
+        <input type="password" name="password" placeholder="Password" required>
+        <a href="/forgot-password/" class="forgot">Forgot Password?</a>
+        <button type="submit">Login</button>
+      </form>
+    </div>
+
+  </div>
+</body>
+</html>

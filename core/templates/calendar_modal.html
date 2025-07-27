@@ -1,0 +1,556 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Calendar Modal</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: white;
+    }
+
+    .calendar-container {
+      width: 100%;
+      max-width: 600px;
+      margin: 20px auto;
+    }
+
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .calendar-header button {
+      background-color: #1F1B4F;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .calendar-header span {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+
+    .calendar-day, .calendar-date {
+      text-align: center;
+      padding: 10px 0;
+      font-weight: normal;
+      border: none;
+    }
+
+    .calendar-day {
+      background-color: #eee;
+      font-weight: bold;
+    }
+
+    .calendar-date.today {
+      color: #007bff !important;
+    }
+
+    .calendar-date.blocked {
+      background-color: #ffe5e5;
+      color: red;
+      font-weight: bold;
+      border: 1px solid #ffe5e5;
+      border-radius: 50%;
+      width: 40px;
+      height: 20px;
+      line-height: 40px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .calendar-date.available {
+      color: #333;
+      cursor: pointer;
+    }
+
+    .calendar-date.sunday {
+      background-color: #f2f2f2;
+      color: #aaa;
+      pointer-events: none;
+    }
+
+    .legend {
+      margin-top: 20px;
+      display: flex;
+      gap: 20px;
+    }
+
+    .legend span {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-box {
+      width: 15px;
+      height: 15px;
+      border: 1px solid #ccc;
+    }
+
+    .blue-box { background-color: #007bff; }
+    .red-box { background-color: red; }
+
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 999;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.5);
+    }
+
+    .modal-content {
+      background-color: #1F1B4F;
+      color: white;
+      margin: 5% auto;
+      padding: 30px;
+      width: 90%;
+      max-width: 900px;
+      border-radius: 8px;
+      position: relative;
+    }
+
+    .modal-content h3 {
+      margin-top: 0;
+      margin-bottom: 5px;
+      font-size: 20px;
+    }
+
+    .close {
+      position: absolute;
+      top: 10px;
+      right: 15px;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+    }
+
+    .modal-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      margin-top: 10px;
+    }
+
+    .left-col, .right-col {
+      flex: 1;
+      min-width: 260px;
+    }
+
+    .checkbox-blocked {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: white;
+      font-size: 16px;
+    }
+
+    .checkbox-blocked input[type="checkbox"] {
+      appearance: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border: 2px solid white;
+      background-color: transparent;
+      border-radius: 3px;
+      cursor: pointer;
+      margin: 0;
+      padding: 0;
+    }
+
+    .checkbox-blocked input[type="checkbox"]:checked::before {
+      content: "✔";
+      font-size: 14px;
+      color: white;
+      line-height: 1;
+      transform: translateY(-1px);
+    }
+
+    .note {
+      font-size: 12px;
+      color: #ccc;
+      margin-bottom: 15px;
+    }
+
+    .left-col label {
+      font-size: 14px;
+      margin-top: 8px;
+      display: block;
+    }
+
+    .left-col select {
+      width: 100%;
+      padding: 6px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+
+    .right-col strong {
+      display: block;
+      font-size: 16px;
+      margin-bottom: 5px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .grid label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+    }
+
+    .grid input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+
+    .reserved-users {
+      background-color: white;
+      color: black;
+      margin-top: 20px;
+      border-radius: 4px;
+      overflow: hidden;
+      font-size: 14px;
+    }
+
+    .reserved-users table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .reserved-users thead {
+      background-color: #ccc;
+    }
+
+    .reserved-users th,
+    .reserved-users td {
+      padding: 12px 10px;
+      border-bottom: 1px solid #eee;
+      text-align: left;
+    }
+
+    .button-row {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 20px;
+    }
+
+    .save-btn {
+      background-color: #24EB4F;
+      color: white;
+      padding: 10px 30px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .close-btn {
+      background-color: #EB2424;
+      color: white;
+      padding: 10px 30px;
+      border: none;
+      border-radius: 4px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .alert.success {
+      background-color: #d4edda;
+      color: green;
+      padding: 10px;
+      border-radius: 4px;
+      display: none;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="calendar-container">
+  <div class="calendar-header">
+    <button onclick="changeMonth(-1)">← Previous</button>
+    <span id="monthYear"></span>
+    <button onclick="changeMonth(1)">Next →</button>
+  </div>
+
+  <div class="calendar-grid" id="calendar"></div>
+
+  <div class="legend">
+    <span><div class="legend-box blue-box"></div>Today</span>
+    <span><div class="legend-box red-box"></div>Blocked</span>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div id="dateModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <h3 id="modalDay"></h3>
+    <h3 id="modalDate"></h3>
+
+    <div class="modal-row">
+      <div class="left-col">
+        <div class="checkbox-blocked">
+          <input type="checkbox" id="blockDate">
+          <label for="blockDate">Block this date</label>
+        </div>
+        <div class="note">NOTE. Adjust your availability only if necessary.</div>
+
+        <label for="startDropdown">Start Time</label>
+        <select id="startDropdown"></select>
+
+        <label for="endDropdown">End Time</label>
+        <select id="endDropdown"></select>
+      </div>
+
+      <div class="right-col">
+        <strong>Available Time Slot</strong>
+        <div class="grid" id="timeSlotContainer"></div>
+
+        <div class="reserved-users">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40%;">Name</th>
+                <th style="width: 30%;">Date</th>
+                <th style="width: 30%;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="reservationList">
+                <!-- To be dynamically populated from backend -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="button-row">
+     <button type="button" class="save-btn" onclick="saveSlot(event)">SAVE</button>
+      <button class="close-btn" onclick="closeModal()">CLOSE</button>
+    </div>
+
+    <div id="saveSuccess" class="alert success">Successfully saved time slot!</div>
+  </div>
+</div>
+
+<script>
+  const itemId = parseInt("{{ item.id|default:0 }}");
+  const today = new Date();  // ✅ Declare this before using it
+  const calendar = document.getElementById('calendar');
+  const monthYear = document.getElementById('monthYear');
+
+  const blockedDatesList = JSON.parse('{{ blocked_dates_json|escapejs }}');
+  const blockedDates = new Set(blockedDatesList);
+  
+  let currentMonth = today.getMonth();  // ✅ missing line
+  let currentYear = today.getFullYear();
+  let selectedISODate = "";
+
+  const months = ["January", "February", "March", "April", "May", "June", "July",
+    "August", "September", "October", "November", "December"];
+
+  function getCSRFToken() {
+    const name = "csrftoken";
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
+      let cookie = cookies[i].trim();
+      if (cookie.startsWith(name + "=")) {
+        return cookie.substring(name.length + 1);
+      }
+    }
+    return "";
+  }
+
+  function saveSlot(event) {
+    if (event) event.preventDefault();
+    const isBlocked = document.getElementById("blockDate").checked;
+
+    fetch("/items/save-blocked-date/", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCSRFToken(),
+      },
+      body: JSON.stringify({
+        date: selectedISODate,
+        is_blocked: isBlocked,
+        item_id: itemId  // ✅ Now using correct variable
+      }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        if (isBlocked) {
+          blockedDates.add(selectedISODate);
+        } else {
+          blockedDates.delete(selectedISODate);
+        }
+
+        generateCalendar(currentMonth, currentYear);
+        document.getElementById("saveSuccess").style.display = "block";
+        setTimeout(() => {
+          document.getElementById("saveSuccess").style.display = "none";
+          closeModal();
+        }, 2000);
+      } else {
+        alert("Failed to save. " + data.error);
+      }
+    })
+    .catch(error => {
+      console.error("Save error:", error);
+      alert("Error occurred.");
+    });
+  }
+
+
+  function generateCalendar(month, year) {
+    calendar.innerHTML = "";
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    days.forEach(day => {
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'calendar-day';
+      dayDiv.textContent = day;
+      calendar.appendChild(dayDiv);
+    });
+
+    const firstDay = new Date(year, month).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      calendar.appendChild(document.createElement('div'));
+    }
+
+    for (let d = 1; d <= totalDays; d++) {
+      const date = new Date(year, month, d);
+      const iso = date.toISOString().split("T")[0];
+      const cell = document.createElement('div');
+      const day = date.getDay();
+
+      cell.className = 'calendar-date';
+
+      if (day === 0) {
+        cell.classList.add('sunday');
+      } else {
+        cell.classList.add('available');
+        cell.addEventListener('click', () => openModal(date, iso));
+      }
+
+      if (date.toDateString() === today.toDateString()) {
+        cell.classList.add('today');
+      }
+
+      if (blockedDates.has(iso)) {
+        cell.classList.remove('available');
+        cell.classList.add('blocked');
+      }
+
+      cell.textContent = d;
+      calendar.appendChild(cell);
+    }
+
+    monthYear.textContent = `${months[month]} ${year}`;
+  }
+
+  function changeMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    } else if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    generateCalendar(currentMonth, currentYear);
+  }
+
+  function openModal(dateObj, isoDate) {
+    selectedISODate = isoDate;
+    const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" });
+    const fullDate = dateObj.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+
+    document.getElementById("modalDay").textContent = dayName;
+    document.getElementById("modalDate").textContent = fullDate;
+    document.getElementById("blockDate").checked = blockedDates.has(isoDate);
+
+    // Populate Dropdowns
+    const startDropdown = document.getElementById("startDropdown");
+    const endDropdown = document.getElementById("endDropdown");
+    startDropdown.innerHTML = "";
+    endDropdown.innerHTML = "";
+
+    let t = 7;
+    while (t <= 18) {
+      const timeStr = formatTime(t);
+      const opt1 = new Option(timeStr, timeStr);
+      const opt2 = new Option(timeStr, timeStr);
+      startDropdown.appendChild(opt1);
+      endDropdown.appendChild(opt2);
+      t += 1.5;
+    }
+
+    // Populate Checkboxes
+    const container = document.getElementById("timeSlotContainer");
+    container.innerHTML = "";
+    let start = 7;
+    while (start < 18) {
+      const label = `${formatTime(start)} - ${formatTime(start + 1.5)}`;
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.value = label;
+
+      const labelElem = document.createElement("label");
+      labelElem.appendChild(checkbox);
+      labelElem.append(` ${label}`);
+      container.appendChild(labelElem);
+
+      start += 1.5;
+    }
+
+    document.getElementById("dateModal").style.display = "block";
+  }
+
+  function closeModal() {
+    document.getElementById("dateModal").style.display = "none";
+  }
+
+  function formatTime(decimal) {
+    const h = Math.floor(decimal);
+    const m = Math.round((decimal - h) * 60);
+    const suffix = h >= 12 ? "PM" : "AM";
+    const hour = ((h + 11) % 12 + 1);
+    const min = m === 0 ? "00" : m.toString().padStart(2, "0");
+    return `${hour}:${min} ${suffix}`;
+  }
+
+  generateCalendar(currentMonth, currentYear);
+</script>
+</body>
+</html>

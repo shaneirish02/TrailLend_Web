@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Transaction Receipt</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+    }
+    .receipt-box {
+      width: 600px;
+      margin: 30px auto;
+      padding: 20px;
+      border: 1px solid #333;
+      border-radius: 10px;
+    }
+    h2 {
+      text-align: center;
+    }
+    .info {
+      margin-top: 20px;
+    }
+    .info p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="receipt-box">
+    <h2>Item Reservation Receipt</h2>
+    <div class="info">
+      <p><strong>Transaction ID:</strong> {{ reservation.transaction_id }}</p>
+      <p><strong>Borrower:</strong> {{ reservation.borrower.username }}</p>
+      <p><strong>Item:</strong> {{ reservation.item.name }}</p>
+      <p><strong>Start:</strong> {{ reservation.start_datetime }}</p>
+      <p><strong>End:</strong> {{ reservation.end_datetime }}</p>
+      <p><strong>Status:</strong> {{ reservation.status }}</p>
+    </div>
+    <p style="text-align:center; margin-top:30px;">Thank you for using our reservation system!</p>
+  </div>
+</body>
+</html>

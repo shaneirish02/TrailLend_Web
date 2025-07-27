@@ -1,0 +1,407 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Create Item</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #F5F5F5;
+    }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 70px;
+      height: 100vh;
+      background-color: #1F1B4F;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+    }
+
+    .sidebar img.logo {
+      width: 70px;
+      height: 70px;
+      margin-bottom: 40px;
+    }
+
+    .sidebar i {
+      color: white;
+      font-size: 25px;
+      margin: 20px 0;
+      cursor: pointer;
+    }
+
+    .header {
+      background-color: #FAB417;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding-left: 80px;
+      font-weight: bold;
+      color: #000000;
+      font-size: 20px;
+    }
+
+    .main-content {
+      margin-left: 70px;
+      padding: 20px;
+    }
+
+    .form-box {
+      background: #fff;
+      border-radius: 10px;
+      padding: 30px;
+      box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .form-section {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+
+    .left, .right {
+      flex: 1;
+      min-width: 280px;
+    }
+
+    .form-label {
+      font-weight: bold;
+      margin-bottom: 5px;
+      display: block;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      box-sizing: border-box;
+    }
+
+    .preview-box {
+      width: 100%;
+      height: 180px;
+      border: 1px solid #ccc;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #eee;
+      margin-bottom: 15px;
+      border-radius: 5px;
+    }
+
+    .preview-box img {
+      max-width: 90%;
+      max-height: 90%;
+    }
+
+    .upload-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .upload-btn {
+      background-color: #E8E6F1;
+      padding: 10px 15px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-weight: bold;
+      white-space: nowrap;
+      margin-top: 20px;
+    }
+
+    .btn-column {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .btn-save {
+      background-color: #24EB4F;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .btn-delete {
+      background-color: #EB2424;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    .calendar-container {
+      margin-top: 20px;
+    }
+
+    .item-no-display {
+      margin-bottom: 20px;
+      padding: 12px;
+      background-color: #f9f9f9;
+      font-weight: bold;
+      border-left: 5px solid #FAB417;
+    }
+
+    /* Calendar Styles */
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .calendar-header button {
+      background-color: #1F1B4F;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .calendar-header span {
+      font-size: 18px;
+      font-weight: bold;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 10px;
+    }
+
+    .calendar-day, .calendar-date {
+      text-align: center;
+      padding: 10px 0;
+      font-weight: normal;
+      border: none;
+    }
+
+    .calendar-day {
+      background-color: #eee;
+      font-weight: bold;
+    }
+
+    .calendar-date.today {
+      color: #007bff !important;
+      font-weight: bold;
+    }
+
+    .calendar-date.available {
+      color: #333;
+    }
+
+    .calendar-date.sunday {
+      background-color: #f2f2f2;
+      color: #aaa;
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ✅ Sidebar -->
+<div class="sidebar">
+  <img src="{% static 'images/logo.png' %}" class="logo">
+  <a href="/dashboard/"><i class="fa fa-angle-double-down" title="Dashboard"></i></a>
+  <a href="/items/"><i class="fa fa-tags" title="Item List"></i></a>
+  <a href="/reservation_verification/"><i class="fa fa-clipboard" title="Reserve Verification"></i></a>
+  <a href="/history-logs/"><i class="fa fa-history" title="Reserve History"></i></a>
+  <a href="/user-feedback/"><i class="fas fa-comment-alt" title="Damage Report"></i></a>
+  <a href="/change_password/"><i class="fas fa-key" title="Change Password"></i></a>
+  <a href="/logout/"><i class="fa fa-sign-out" title="Log Out"></i></a>
+</div>
+
+<!-- ✅ Header -->
+<div class="header">SCITC LIST OF ITEM > CREATE NEW ITEM</div>
+
+<!-- ✅ Main Form Content -->
+<div class="main-content">
+
+  <div class="item-no-display">Item No: {{ generated_item_no }}</div>
+
+  <div class="form-box">
+    <form method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      {% if form.errors %}
+        <div style="color: red; margin-bottom: 10px;">
+          <strong>Form errors:</strong>
+          <ul>
+            {% for field in form %}
+              {% for error in field.errors %}
+                <li>{{ field.label }}: {{ error }}</li>
+              {% endfor %}
+            {% endfor %}
+            {% for error in form.non_field_errors %}
+              <li>{{ error }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+      {% endif %}
+
+      <div class="form-section">
+        <!-- LEFT SIDE -->
+        <div class="left">
+          <div class="preview-box" id="preview-image">
+            <i class="fa fa-image fa-2x" style="color: #aaa;"></i>
+          </div>
+
+          <label class="form-label">Payment</label>
+          <select name="payment_type" onchange="togglePriceInput(this)">
+            <option value="free">Free</option>
+            <option value="custom">Custom</option>
+          </select>
+          <input type="number" name="custom_price" id="price" placeholder="Enter amount" style="display:none;" min="0">
+
+          <label class="form-label">Availability</label>
+          <select name="availability">
+            <option value="true">Available</option>
+            <option value="false">Unavailable</option>
+          </select>
+
+          <div class="btn-column">
+            <button type="submit" class="btn-save">Save</button>
+            <button type="button" class="btn-delete" onclick="alert('Delete logic here')">Delete</button>
+          </div>
+        </div>
+
+        <!-- RIGHT SIDE -->
+        <div class="right">
+          <label class="form-label">Item Image</label>
+          <div class="upload-row">
+            <input type="text" id="image-name-display" value="" disabled>
+            <label class="upload-btn">
+              CHOOSE IMAGE
+              <input type="file" name="image" accept="image/*" style="display: none;" onchange="preview(event)">
+            </label>
+          </div>
+
+          <label class="form-label">Item Name</label>
+          <input type="text" name="name" value="{{ form.name.value|default:'' }}" required>
+
+          <label class="form-label">Department Owner</label>
+          <input type="text" value="Society of College in Information Technology and Computing" disabled>
+
+          <label class="form-label">Description</label>
+          <textarea name="description" rows="4" required>{{ form.description.value|default:'' }}</textarea>
+
+          <div class="calendar-container">
+            <!-- Simplified Calendar -->
+            <div class="calendar-header">
+              <button onclick="changeMonth(-1)">← Previous</button>
+              <span id="monthYear"></span>
+              <button onclick="changeMonth(1)">Next →</button>
+            </div>
+            <div class="calendar-grid" id="calendar"></div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  function preview(event) {
+    const file = event.target.files[0];
+    const reader = new FileReader();
+
+    if (file) {
+      document.getElementById("image-name-display").value = file.name;
+
+      reader.onload = function () {
+        const output = document.getElementById('preview-image');
+        output.innerHTML = `<img src="${reader.result}">`;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  function togglePriceInput(sel) {
+    document.getElementById("price").style.display = sel.value === 'custom' ? 'block' : 'none';
+  }
+
+  // Calendar logic
+  const calendar = document.getElementById('calendar');
+  const monthYear = document.getElementById('monthYear');
+  const today = new Date();
+  let currentMonth = today.getMonth();
+  let currentYear = today.getFullYear();
+
+  const months = ["January", "February", "March", "April", "May", "June", "July",
+    "August", "September", "October", "November", "December"];
+
+  function generateCalendar(month, year) {
+    calendar.innerHTML = "";
+    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    days.forEach(day => {
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'calendar-day';
+      dayDiv.textContent = day;
+      calendar.appendChild(dayDiv);
+    });
+
+    const firstDay = new Date(year, month).getDay();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    for (let i = 0; i < firstDay; i++) {
+      calendar.appendChild(document.createElement('div'));
+    }
+
+    for (let d = 1; d <= totalDays; d++) {
+      const date = new Date(year, month, d);
+      const cell = document.createElement('div');
+      const day = date.getDay();
+
+      cell.className = 'calendar-date';
+
+      if (day === 0) {
+        cell.classList.add('sunday');
+      } else {
+        cell.classList.add('available');
+      }
+
+      if (date.toDateString() === today.toDateString()) {
+        cell.classList.add('today');
+      }
+
+      cell.textContent = d;
+      calendar.appendChild(cell);
+    }
+
+    monthYear.textContent = `${months[month]} ${year}`;
+  }
+
+  function changeMonth(delta) {
+    currentMonth += delta;
+    if (currentMonth < 0) {
+      currentMonth = 11;
+      currentYear--;
+    } else if (currentMonth > 11) {
+      currentMonth = 0;
+      currentYear++;
+    }
+    generateCalendar(currentMonth, currentYear);
+  }
+
+  generateCalendar(currentMonth, currentYear);
+</script>
+
+</body>
+</html>
