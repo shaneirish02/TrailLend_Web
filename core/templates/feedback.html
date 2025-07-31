@@ -1,0 +1,152 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Reservation Verification &lt; Feedback</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <style>
+    body { margin:0; font-family:Arial, sans-serif; background-color:#F5F5F5; }
+
+    .sidebar {
+      position:fixed; top:0; left:0; width:70px; height:100vh; background-color:#1F1B4F;
+      display:flex; flex-direction:column; align-items:center; padding-top:20px;
+    }
+    .sidebar img.logo { width:70px; height:70px; margin-bottom:40px; }
+    .sidebar i { color:#fff; font-size:25px; margin:20px 0; cursor:pointer; }
+
+    .header {
+      background-color:#FAB417; height:60px; display:flex; align-items:center;
+      padding-left:80px; font-weight:bold; color:#000; font-size:20px;
+    }
+
+    .main-content { margin-left:70px; padding:32px; }
+
+    .page-head {
+      font-size:18px; color:#333; margin-bottom:16px; font-weight:bold;
+    }
+
+    .feedback-card {
+      background:#eee; border-radius:10px; padding:20px;
+      max-width:820px; margin:0 auto; /* gray container not full width */
+    }
+
+    .row { display:flex; gap:16px; flex-wrap:wrap; }
+    .row > div { flex:1 1 300px; }
+
+    .label { font-weight:bold; margin-bottom:6px; display:block; }
+    .text { margin:0 0 10px 0; }
+
+    textarea {
+      width:100%; min-height:140px; resize:vertical; border:1px solid #ccc; border-radius:6px; padding:10px; font-size:14px;
+      background:#fff;
+    }
+
+    select {
+      width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; background:#fff; font-size:14px;
+    }
+
+    .actions { display:flex; align-items:center; gap:12px; margin-top:16px; }
+    .submit-btn {
+      background:#007BFF; color:#fff; border:none; border-radius:6px; padding:10px 16px; cursor:pointer; font-weight:bold;
+    }
+
+    /* Toast popup */
+    #toast {
+      display:none; position:fixed; top:20px; right:20px; background:#28a745; color:#fff;
+      padding:12px 16px; border-radius:8px; font-size:14px; z-index:9999; box-shadow:0 4px 10px rgba(0,0,0,.2);
+    }
+    #toast i { margin-right:8px; }
+  </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <img src="{% static 'images/logo.png' %}" alt="Logo" class="logo">
+  <a href="{% url 'dashboard' %}"><i class="fa fa-angle-double-down" title="Dashboard"></i></a>
+  <a href="{% url 'item_list' %}"><i class="fa fa-tags" title="Item List"></i></a>
+  <a href="{% url 'reservation_verification' %}"><i class="fa fa-clipboard" title="Reserve Verification"></i></a>
+  <a href="{% url 'history_logs' %}"><i class="fa fa-history" title="Reserve History List"></i></a>
+  <a href="{% url 'damage_report' %}"><i class="fas fa-comment-alt" title="Damage Report"></i></a>
+  <a href="{% url 'change_password' %}"><i class="fas fa-key" title="Change Password"></i></a>
+  <a href="{% url 'logout' %}"><i class="fa fa-sign-out" title="Log Out"></i></a>
+</div>
+
+<!-- Header -->
+<div class="header">RESERVATION VERIFICATION &lt; FEEDBACK</div>
+
+<!-- Toast -->
+<div id="toast"><i>✔</i><span id="toastMsg"></span></div>
+
+<!-- Main -->
+<div class="main-content">
+  <div class="feedback-card">
+    <div class="row">
+      <div>
+        <span class="label">Name:</span>
+        <p class="text">{{ reservation.borrower.profile.full_name|default:"N/A" }}</p>
+      </div>
+      <div>
+        <span class="label">Email:</span>
+        <p class="text">{{ reservation.borrower.email|default:"N/A" }}</p>
+      </div>
+    </div>
+
+    <div style="margin-top:10px;">
+      <label class="label" for="feedbackText">Feedback:</label>
+      <textarea id="feedbackText" placeholder="Enter feedback here..."></textarea>
+    </div>
+
+    <div style="margin-top:12px;">
+      <label class="label" for="timeliness">Was it on time?</label>
+      <select id="timeliness">
+        <option value="on_time">✔ On Time</option>
+        <option value="late">⚠ Late</option>
+        <option value="not_submitted">✖ Not Submitted</option>
+      </select>
+    </div>
+
+    <div class="actions">
+      <button class="submit-btn" id="submitFeedbackBtn">Submit Feedback</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function getCSRFToken() {
+    const name="csrftoken";
+    const cookies=document.cookie.split(';');
+    for (let c of cookies) { c=c.trim(); if (c.startsWith(name+'=')) return c.substring(name.length+1); }
+    return '';
+  }
+  function showToast(msg) {
+    const t=document.getElementById('toast'); document.getElementById('toastMsg').textContent=' '+msg;
+    t.style.display='block'; setTimeout(()=>{ t.style.display='none'; }, 2000);
+  }
+
+  document.getElementById('submitFeedbackBtn').addEventListener('click', async (e)=>{
+    e.preventDefault();
+    const payload = {
+      feedback: document.getElementById('feedbackText').value || '',
+      timeliness: document.getElementById('timeliness').value
+    };
+    const url = "{% url 'submit_feedback' reservation.id %}";
+    const res = await fetch(url, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-CSRFToken':getCSRFToken()},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (data && data.success) {
+      showToast('Admin successfully submitted feedback');
+      // optional: redirect back after short delay
+      setTimeout(()=>{ window.location.href = "{% url 'reservation_verification' %}?q={{ reservation.borrower.username }}"; }, 1200);
+    } else {
+      alert(data.error || 'Failed to submit feedback.');
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -2,6 +2,9 @@
 from django.contrib.auth.models import User
 from django.db import models
 from django.utils import timezone
+from datetime import datetime
+import uuid
+
 
 
 class Profile(models.Model):
@@ -57,14 +60,12 @@ class Item(models.Model):
 class ItemDateBlock(models.Model):
     item = models.ForeignKey(Item, on_delete=models.CASCADE)
     date = models.DateField()
-    start_time = models.TimeField(null=True, blank=True)
-    end_time = models.TimeField(null=True, blank=True)
     is_blocked = models.BooleanField(default=False)
-    reserved_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
-    purpose = models.TextField(blank=True)  # Optional: useful for reservation notes
 
     def __str__(self):
-        return f"{self.item.name} - {self.date} {self.start_time} to {self.end_time} {'(Blocked)' if self.is_blocked else ''}"
+        status = "(Blocked)" if self.is_blocked else "(Available)"
+        return f"{self.item.name} - {self.date} {status}"
+
 
 
 class DamageReport(models.Model):
@@ -84,24 +85,33 @@ class Reservation(models.Model):
     start_datetime = models.DateTimeField()
     end_datetime = models.DateTimeField()
     signature = models.TextField()  # base64 string
+    
+    # Reservation status (pending, borrowed, returned, cancelled)
     status = models.CharField(default='pending', max_length=20)
+    
+    # Feedback fields (NEW)
+    feedback = models.TextField(blank=True, null=True)
+    feedback_status = models.CharField(
+        max_length=20,
+        choices=[('on_time', 'On Time'), ('late', 'Late'), ('not_submitted', 'Not Submitted')],
+        blank=True,
+        null=True
+    )
+    
     fee = models.CharField(max_length=20, default="Free")
 
-    
     def save(self, *args, **kwargs):
         if not self.transaction_id:
-            last = Reservation.objects.order_by('-id').first()
-            new_id = 1000 if not last else int(last.transaction_id) + 1
-            self.transaction_id = str(new_id)
-        
-        # Set fee based on item's payment_type
+            today_str = datetime.now().strftime("%Y%m%d")
+            unique_suffix = str(uuid.uuid4())[:6]  # random string, first 6 characters
+            self.transaction_id = f"T{today_str}-{unique_suffix}"
+
         if self.item.payment_type == "custom" and self.item.custom_price:
             self.fee = f"₱{self.item.custom_price}"
         else:
             self.fee = "Free"
-        
+
         super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.transaction_id} - {self.item.name} reserved by {self.borrower.username}"
-

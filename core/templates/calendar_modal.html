@@ -106,6 +106,7 @@
     .blue-box { background-color: #007bff; }
     .red-box { background-color: red; }
 
+    /* Modal */
     .modal {
       display: none;
       position: fixed;
@@ -134,6 +135,24 @@
       font-size: 20px;
     }
 
+    .alert.success {
+      display: none;
+      background-color: #28a745;       /* solid green background */
+      color: #ffffff;                  /* white text */
+      padding: 10px 15px;
+      border-radius: 6px;
+      margin-top: 12px;
+      font-size: 14px;
+      font-weight: normal;             /* no bold */
+      width: fit-content;
+    }
+
+    .alert.success i {
+      color: #ffffff;                  /* white check icon */
+      font-style: normal;
+      margin-right: 8px;
+      font-size: 14px;
+    }
     .close {
       position: absolute;
       top: 10px;
@@ -193,43 +212,6 @@
       margin-bottom: 15px;
     }
 
-    .left-col label {
-      font-size: 14px;
-      margin-top: 8px;
-      display: block;
-    }
-
-    .left-col select {
-      width: 100%;
-      padding: 6px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-    }
-
-    .right-col strong {
-      display: block;
-      font-size: 16px;
-      margin-bottom: 5px;
-    }
-
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
-
-    .grid label {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 14px;
-    }
-
-    .grid input[type="checkbox"] {
-      width: 16px;
-      height: 16px;
-    }
-
     .reserved-users {
       background-color: white;
       color: black;
@@ -282,13 +264,21 @@
       cursor: pointer;
     }
 
-    .alert.success {
-      background-color: #d4edda;
-      color: green;
-      padding: 10px;
-      border-radius: 4px;
+    /* Popup Notification */
+    #popupNotification {
       display: none;
-      margin-top: 15px;
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #29e652;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 8px;
+      z-index: 1000;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    #popupNotification i {
+      margin-right: 8px;
     }
   </style>
 </head>
@@ -296,9 +286,10 @@
 
 <div class="calendar-container">
   <div class="calendar-header">
-    <button onclick="changeMonth(-1)">← Previous</button>
+    <!-- Added type="button" to prevent form submission -->
+    <button type="button" onclick="changeMonth(-1)">← Previous</button>
     <span id="monthYear"></span>
-    <button onclick="changeMonth(1)">Next →</button>
+    <button type="button" onclick="changeMonth(1)">Next →</button>
   </div>
 
   <div class="calendar-grid" id="calendar"></div>
@@ -323,18 +314,9 @@
           <label for="blockDate">Block this date</label>
         </div>
         <div class="note">NOTE. Adjust your availability only if necessary.</div>
-
-        <label for="startDropdown">Start Time</label>
-        <select id="startDropdown"></select>
-
-        <label for="endDropdown">End Time</label>
-        <select id="endDropdown"></select>
       </div>
 
       <div class="right-col">
-        <strong>Available Time Slot</strong>
-        <div class="grid" id="timeSlotContainer"></div>
-
         <div class="reserved-users">
           <table>
             <thead>
@@ -345,7 +327,7 @@
               </tr>
             </thead>
             <tbody id="reservationList">
-                <!-- To be dynamically populated from backend -->
+                <!-- To be dynamically populated -->
             </tbody>
           </table>
         </div>
@@ -353,24 +335,27 @@
     </div>
 
     <div class="button-row">
-     <button type="button" class="save-btn" onclick="saveSlot(event)">SAVE</button>
+      <button type="button" class="save-btn" onclick="saveSlot(event)">SAVE</button>
       <button class="close-btn" onclick="closeModal()">CLOSE</button>
     </div>
 
-    <div id="saveSuccess" class="alert success">Successfully saved time slot!</div>
+    <!-- Styled popup -->
+    <div id="modalNotification" class="alert success">
+      <i>✔</i> <span id="modalMessage"></span>
+    </div>
   </div>
 </div>
 
+
 <script>
   const itemId = parseInt("{{ item.id|default:0 }}");
-  const today = new Date();  // ✅ Declare this before using it
+  const today = new Date();
   const calendar = document.getElementById('calendar');
   const monthYear = document.getElementById('monthYear');
-
   const blockedDatesList = JSON.parse('{{ blocked_dates_json|escapejs }}');
   const blockedDates = new Set(blockedDatesList);
   
-  let currentMonth = today.getMonth();  // ✅ missing line
+  let currentMonth = today.getMonth();
   let currentYear = today.getFullYear();
   let selectedISODate = "";
 
@@ -380,13 +365,22 @@
   function getCSRFToken() {
     const name = "csrftoken";
     const cookies = document.cookie.split(";");
-    for (let i = 0; i < cookies.length; i++) {
-      let cookie = cookies[i].trim();
+    for (let cookie of cookies) {
+      cookie = cookie.trim();
       if (cookie.startsWith(name + "=")) {
         return cookie.substring(name.length + 1);
       }
     }
     return "";
+  }
+
+  function showPopup(message) {
+    const popup = document.getElementById("modalNotification");
+    document.getElementById("modalMessage").innerText = message;
+    popup.style.display = "block";
+    setTimeout(() => {
+      popup.style.display = "none";
+    }, 3000);
   }
 
   function saveSlot(event) {
@@ -402,7 +396,7 @@
       body: JSON.stringify({
         date: selectedISODate,
         is_blocked: isBlocked,
-        item_id: itemId  // ✅ Now using correct variable
+        item_id: itemId
       }),
     })
     .then(response => response.json())
@@ -410,16 +404,19 @@
       if (data.success) {
         if (isBlocked) {
           blockedDates.add(selectedISODate);
+          showPopup("Successfully Blocked Date");
         } else {
           blockedDates.delete(selectedISODate);
+          showPopup("Successfully Unblocked Date");
         }
 
         generateCalendar(currentMonth, currentYear);
-        document.getElementById("saveSuccess").style.display = "block";
+
+        // ⬇️ Delay closing the modal for 1.5 seconds so the message shows
         setTimeout(() => {
-          document.getElementById("saveSuccess").style.display = "none";
           closeModal();
-        }, 2000);
+        }, 1500);
+
       } else {
         alert("Failed to save. " + data.error);
       }
@@ -429,7 +426,6 @@
       alert("Error occurred.");
     });
   }
-
 
   function generateCalendar(month, year) {
     calendar.innerHTML = "";
@@ -450,7 +446,12 @@
 
     for (let d = 1; d <= totalDays; d++) {
       const date = new Date(year, month, d);
-      const iso = date.toISOString().split("T")[0];
+
+      // Build ISO date using local timezone (avoid UTC offset issues)
+      const iso = date.getFullYear() + "-" +
+        String(date.getMonth() + 1).padStart(2, "0") + "-" +
+        String(date.getDate()).padStart(2, "0");
+
       const cell = document.createElement('div');
       const day = date.getDay();
 
@@ -492,62 +493,21 @@
   }
 
   function openModal(dateObj, isoDate) {
-    selectedISODate = isoDate;
+    // Build selectedISODate using local timezone (not UTC)
+    selectedISODate = dateObj.getFullYear() + "-" +
+      String(dateObj.getMonth() + 1).padStart(2, "0") + "-" +
+      String(dateObj.getDate()).padStart(2, "0");
+
     const dayName = dateObj.toLocaleDateString("en-US", { weekday: "long" });
     const fullDate = dateObj.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-
     document.getElementById("modalDay").textContent = dayName;
     document.getElementById("modalDate").textContent = fullDate;
     document.getElementById("blockDate").checked = blockedDates.has(isoDate);
-
-    // Populate Dropdowns
-    const startDropdown = document.getElementById("startDropdown");
-    const endDropdown = document.getElementById("endDropdown");
-    startDropdown.innerHTML = "";
-    endDropdown.innerHTML = "";
-
-    let t = 7;
-    while (t <= 18) {
-      const timeStr = formatTime(t);
-      const opt1 = new Option(timeStr, timeStr);
-      const opt2 = new Option(timeStr, timeStr);
-      startDropdown.appendChild(opt1);
-      endDropdown.appendChild(opt2);
-      t += 1.5;
-    }
-
-    // Populate Checkboxes
-    const container = document.getElementById("timeSlotContainer");
-    container.innerHTML = "";
-    let start = 7;
-    while (start < 18) {
-      const label = `${formatTime(start)} - ${formatTime(start + 1.5)}`;
-      const checkbox = document.createElement("input");
-      checkbox.type = "checkbox";
-      checkbox.value = label;
-
-      const labelElem = document.createElement("label");
-      labelElem.appendChild(checkbox);
-      labelElem.append(` ${label}`);
-      container.appendChild(labelElem);
-
-      start += 1.5;
-    }
-
     document.getElementById("dateModal").style.display = "block";
   }
 
   function closeModal() {
     document.getElementById("dateModal").style.display = "none";
-  }
-
-  function formatTime(decimal) {
-    const h = Math.floor(decimal);
-    const m = Math.round((decimal - h) * 60);
-    const suffix = h >= 12 ? "PM" : "AM";
-    const hour = ((h + 11) % 12 + 1);
-    const min = m === 0 ? "00" : m.toString().padStart(2, "0");
-    return `${hour}:${min} ${suffix}`;
   }
 
   generateCalendar(currentMonth, currentYear);

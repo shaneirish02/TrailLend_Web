@@ -33,6 +33,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .utils import send_push_notification
 from notifications.models import Notification
+from .models import Profile  # has fields: user (FK), full_name, role
+from .models import Reservation  # adjust the model name if it's different
+
+
 
 
 from .models import (
@@ -266,10 +270,38 @@ def forgot_password_api(request):
 
     return Response({'message': 'Code sent to email'}, status=200)
 # ------------------- CORE PAGES -------------------
-
 def dashboard(request):
-    return render(request, 'dashboard.html')
+    view = request.GET.get('view', 'overview')
+    q = request.GET.get('q', '').strip()
 
+    total_users = User.objects.count()
+
+    instructors_qs = Profile.objects.select_related('user').filter(role='instructor')
+    students_qs = Profile.objects.select_related('user').filter(role='student')
+
+    if view == 'instructors' and q:
+      instructors_qs = instructors_qs.filter(
+          Q(user__username__icontains=q) |
+          Q(full_name__icontains=q) |
+          Q(user__email__icontains=q)
+      )
+
+    if view == 'students' and q:
+      students_qs = students_qs.filter(
+          Q(user__username__icontains=q) |
+          Q(full_name__icontains=q) |
+          Q(user__email__icontains=q)
+      )
+
+    context = {
+        'total_users': total_users,
+        'instructor_count': instructors_qs.count(),
+        'student_count': students_qs.count(),
+        'instructors': instructors_qs.order_by('-user__date_joined'),
+        'students': students_qs.order_by('-user__date_joined'),
+        'query': q,
+    }
+    return render(request, 'dashboard.html', context)
 def history_logs(request):
     if request.user.is_superuser:
         reservations = Reservation.objects.all().order_by('-start_datetime')
@@ -278,21 +310,78 @@ def history_logs(request):
 
     return render(request, 'history_logs.html', {'reservations': reservations})
 
+
 def reservation_verification(request):
     query = request.GET.get('q')
-    reservations = []
 
     if query:
         reservations = Reservation.objects.filter(
             Q(borrower__username__icontains=query) |
             Q(borrower__profile__user_id__icontains=query)
         ).select_related('borrower__profile', 'item')
+    else:
+        reservations = Reservation.objects.all().select_related('borrower__profile', 'item')
 
     context = {
         'reservations': reservations,
         'query': query,
     }
     return render(request, 'reservation_verification.html', context)
+
+
+# Borrow button action
+def borrow_reservation(request, reservation_id):
+    reservation = get_object_or_404(Reservation, id=reservation_id)
+
+    # Update status
+    reservation.status = "BORROWED"
+    reservation.save()
+
+    # If AJAX, return JSON (for popup)
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"success": True, "message": "Item successfully borrowed by the user"})
+
+    messages.success(request, "Item successfully borrowed by the user")
+    return redirect("reservation_verification")
+
+
+# Return button action
+def return_reservation(request, reservation_id):
+    reservation = get_object_or_404(Reservation, id=reservation_id)
+
+    # Update status
+    reservation.status = "RETURNED"
+    reservation.save()
+
+    if request.headers.get("x-requested-with") == "XMLHttpRequest":
+        return JsonResponse({"success": True, "message": "Item successfully returned by the user"})
+
+    messages.success(request, "Item successfully returned by the user")
+    return redirect("reservation_verification")
+
+
+# Show feedback page
+def feedback_view(request, reservation_id):
+    reservation = get_object_or_404(Reservation, id=reservation_id)
+    return render(request, "feedback.html", {"reservation": reservation})
+
+
+# Submit feedback
+def submit_feedback(request, reservation_id):
+    if request.method == "POST":
+        reservation = get_object_or_404(Reservation, id=reservation_id)
+        feedback_text = request.POST.get("feedback", "")
+        status = request.POST.get("status", "Not Submitted")
+
+        # Save feedback (you may want to create a Feedback model instead)
+        reservation.feedback = feedback_text
+        reservation.feedback_status = status
+        reservation.save()
+
+        messages.success(request, "Admin successfully submitted feedback")
+        return redirect("reservation_verification")
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
 
 def damage_report(request):
     return render(request, 'damage_report.html')
@@ -322,40 +411,31 @@ def save_blocked_date(request):
             print("🔍 Data received:", data)
 
             if not item_id or not date_str:
-                print("❌ Missing item_id or date")
                 return JsonResponse({'error': 'Missing item_id or date'}, status=400)
 
-            # ✅ Parse date string to a Python date object
+            # Parse date
             try:
                 parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
             except ValueError:
-                print("❌ Invalid date format")
                 return JsonResponse({'error': 'Invalid date format. Expected YYYY-MM-DD'}, status=400)
 
-            # ✅ Fetch item
+            # Fetch item
             try:
                 item = Item.objects.get(id=item_id)
             except Item.DoesNotExist:
-                print(f"❌ Item with id {item_id} not found")
                 return JsonResponse({'error': f'Item with id {item_id} not found'}, status=404)
 
-            print(f"✅ Saving: item_id={item.id}, item_name={item.name}, date={parsed_date}, blocked={is_blocked}")
-
-            # ✅ Save or update ItemDateBlock
+            # Save or update block (whole-day only)
             blocked_obj, created = ItemDateBlock.objects.update_or_create(
                 item=item,
                 date=parsed_date,
                 defaults={
-                    'is_blocked': is_blocked,
-                    'start_time': None,
-                    'end_time': None,
-                    'reserved_by': None,
-                    'purpose': ''
+                    'is_blocked': is_blocked
                 }
             )
 
-            print(f"✅ Save successful: {blocked_obj} | Created: {created}")
-            print(f"🧪 Saved under item_id: {item.id}")
+            action = "blocked" if is_blocked else "unblocked"
+            print(f"✅ Date {parsed_date} has been {action} for item {item.name}")
 
             return JsonResponse({'success': True, 'created': created})
 
@@ -364,6 +444,7 @@ def save_blocked_date(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
 # ------------------- ITEM MANAGEMENT -------------------
 
 def generate_item_no():
@@ -415,8 +496,8 @@ def view_item(request, pk):
     item = get_object_or_404(Item, pk=pk)
 
     if request.method == 'POST':
+        # Only update item fields. Do NOT modify ItemDateBlock here.
         form = ItemForm(request.POST, request.FILES, instance=item)
-
         if form.is_valid():
             item = form.save(commit=False)
 
@@ -424,45 +505,34 @@ def view_item(request, pk):
             availability = request.POST.get('availability', 'true')
             item.availability = availability.lower() == 'true'
 
-            # Handle optional image change
+            # Optional image change
             if 'image' in request.FILES:
                 item.image = request.FILES['image']
 
             item.save()
 
-            # ✅ Safely decode blocked dates JSON
-            blocked_json = request.POST.get('blocked_dates_json', '')
-            if blocked_json.strip():  # check if not empty
-                try:
-                    blocked_list = json.loads(blocked_json)
-                    # Clear old and save new
-                    ItemDateBlock.objects.filter(item=item).delete()
-                    for date_str in blocked_list:
-                        ItemDateBlock.objects.create(item=item, date=date_str)
-                except json.JSONDecodeError:
-                    messages.error(request, "⚠️ Failed to parse blocked dates.")
-            else:
-                # If empty, remove all existing blocks
-                ItemDateBlock.objects.filter(item=item).delete()
+            # ❌ DO NOT clear or rewrite blocked dates here.
+            # The calendar modal (AJAX) manages ItemDateBlock records.
 
             messages.success(request, "✅ Changes saved successfully.")
-            return redirect('item_list')
+            return redirect('item_list')  # or redirect('view_item', pk=item.pk)
         else:
             messages.error(request, "❌ Form validation failed.")
     else:
         form = ItemForm(instance=item)
 
-    # ✅ Prepare existing blocked dates
+    # ✅ Prepare existing blocked dates in ISO format (YYYY-MM-DD)
     blocked_dates = list(
-        ItemDateBlock.objects.filter(item=item).values_list('date', flat=True)
+        ItemDateBlock.objects.filter(item=item, is_blocked=True).values_list('date', flat=True)
     )
     blocked_dates_json = json.dumps([
-        date.strftime('%B %d, %Y') for date in blocked_dates  # e.g., July 13, 2025
+        d.strftime('%Y-%m-%d') for d in blocked_dates
     ])
+
     return render(request, 'view_item.html', {
         'form': form,
         'item': item,
-        'item_id': item.id,  # ✅ Pass this
+        'item_id': item.id,
         'blocked_dates_json': blocked_dates_json,
     })
 
